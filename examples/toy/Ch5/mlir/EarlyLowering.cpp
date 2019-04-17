@@ -119,13 +119,41 @@ public:
   }
 };
 
+
+/// Lower toy.mul to Linalg `matmul`.
+///
+/// This class inherit from `DialectOpConversion` and override `rewrite`,
+/// similarly to the PatternRewriter introduced in the previous chapter.
+/// It will be called by the DialectConversion framework (see `LateLowering`
+/// class below).
+class DeterminantConversion : public DialectOpConversion {
+public:
+  explicit DeterminantConversion(MLIRContext *context)
+      : DialectOpConversion(toy::DeterminantOp::getOperationName(), 1, context) {}
+
+  SmallVector<Value *, 4> rewrite(Operation *op, ArrayRef<Value *> operands,
+                                  FuncBuilder &rewriter) const override {
+    using namespace edsc;
+    toy::DeterminantOp determinant = op->cast<toy::DeterminantOp>();
+    auto loc = determinant.getLoc();
+    ScopedContext scope(rewriter, loc);
+    Value *result = memRefTypeCast(
+        rewriter, rewriter.create<toy::AllocOp>(loc, determinant.getResult()->getType())
+                      .getResult());
+    Value *lhs = memRefTypeCast(rewriter, operands[0]);
+    Value *rhs = memRefTypeCast(rewriter, operands[0]);
+    auto memrefLHSTy = lhs->getType().cast<MemRefType>();
+    rewriter.create<toy::AddOp>(loc, operands[0], operands[0]);
+    return {typeCast(rewriter, result, determinant.getType())};
+  }
+};
 // The conversion class from Toy IR Dialect to a mix of Linalg and LLVM.
 class EarlyLowering : public DialectConversion {
 protected:
   // Initialize the list of converters.
   llvm::DenseSet<DialectOpConversion *>
   initConverters(MLIRContext *context) override {
-    return ConversionListBuilder<MulOpConversion>::build(&allocator, context);
+    return ConversionListBuilder<MulOpConversion, DeterminantConversion>::build(&allocator, context);
   }
 
 private:

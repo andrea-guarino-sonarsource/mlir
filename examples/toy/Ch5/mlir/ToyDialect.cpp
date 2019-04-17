@@ -101,7 +101,7 @@ mlir::MemRefType ToyArrayType::toMemref() {
 /// point of registration of custom types and operations for the dialect.
 ToyDialect::ToyDialect(mlir::MLIRContext *ctx) : mlir::Dialect("toy", ctx) {
   addOperations<ConstantOp, GenericCallOp, PrintOp, TransposeOp, ReshapeOp,
-                MulOp, AddOp, ReturnOp, AllocOp, TypeCastOp>();
+                MulOp, AddOp, ReturnOp, AllocOp, TypeCastOp, DeterminantOp>();
   addTypes<ToyArrayType>();
 }
 
@@ -342,6 +342,18 @@ void TransposeOp::build(mlir::Builder *builder, mlir::OperationState *state,
 }
 
 mlir::LogicalResult TransposeOp::verify() {
+  if (failed(verifyToySingleOperand(this)))
+    return mlir::failure();
+  return mlir::success();
+}
+
+void DeterminantOp::build(mlir::Builder *builder, mlir::OperationState *state,
+                        mlir::Value *value) {
+  state->types.push_back(ToyArrayType::get(builder->getContext()));
+  state->operands.push_back(value);
+}
+
+mlir::LogicalResult DeterminantOp::verify() {
   if (failed(verifyToySingleOperand(this)))
     return mlir::failure();
   return mlir::success();
