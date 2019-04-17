@@ -325,6 +325,28 @@ public:
   using Op::Op;
 };
 
+/// Determinant Operation
+class DeterminantOp : public mlir::Op<DeterminantOp, mlir::OpTrait::OneOperand,
+                                   mlir::OpTrait::OneResult,
+                                   mlir::OpTrait::HasNoSideEffect> {
+public:
+  /// This is the name used by MLIR to match an operation to this class during
+  /// parsing.
+  static llvm::StringRef getOperationName() { return "toy.determinant"; }
+
+  /// The operation can have extra verification beyond the traits they define.
+  mlir::LogicalResult verify();
+
+  /// Interface to mlir::Builder::create<GetOp>(...)
+  /// This method populates the `state` that MLIR uses to create operations.
+  /// The `toy.constant` operation does not have arguments but attaches a
+  /// constant array as an attribute and returns it as an SSA value.
+  static void build(mlir::Builder *builder, mlir::OperationState *state,
+                    mlir::Value * argument);
+  /// Inherit constructor.
+  using Op::Op;
+};
+
 /// Element wise addition of two arrays. The shape must match.
 class AddOp : public mlir::Op<AddOp, mlir::OpTrait::NOperands<2>::Impl,
                               mlir::OpTrait::OneResult,
